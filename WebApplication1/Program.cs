@@ -100,5 +100,5 @@ static string PostgresConnectionString(string? url)
     var user = Uri.UnescapeDataString(userInfo[0]);
     var pass = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
     var db = uri.AbsolutePath.TrimStart('/');
-    return $"Host={uri.Host};Port={uri.Port};Database={db};Username={user};Password={pass};SslMode=Require;Trust Server Certificate=true;";
+    return $"Host={uri.Host};Port={uri.Port};Database={db};Username={user};Password={pass};SslMode=Require;Trust Server Certificate=true;GssEncryptionMode=Disable;";
 }
