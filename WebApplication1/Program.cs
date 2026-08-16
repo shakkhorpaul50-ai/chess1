@@ -81,9 +81,25 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     if (app.Environment.IsDevelopment())
+    {
         db.Database.EnsureCreated();
+    }
     else
-        db.Database.Migrate();
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                db.Database.Migrate();
+                break;
+            }
+            catch (Exception ex) when (attempt < 5)
+            {
+                app.Logger.LogError(ex, "Database migration attempt {Attempt} failed, retrying...", attempt);
+                Thread.Sleep(TimeSpan.FromSeconds(10 * attempt));
+            }
+        }
+    }
 }
 
 app.Run();
