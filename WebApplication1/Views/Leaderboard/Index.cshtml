@@ -1,0 +1,48 @@
+@model List<ApplicationUser>
+@{
+    ViewData["Title"] = "Leaderboard";
+}
+<div class="card shadow-sm">
+    <div class="card-header fw-bold">Leaderboard - Point Table</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th><th>Player</th><th>ELO</th><th>Points</th><th>W</th><th>D</th><th>L</th><th>Games</th><th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.Count; i++)
+                    {
+                        var u = Model[i];
+                        <tr>
+                            <td>
+                                <span class="badge @(i == 0 ? "bg-warning text-dark" : i == 1 ? "bg-secondary" : i == 2 ? "bg-danger" : "bg-light text-dark")">@(i + 1)</span>
+                            </td>
+                            <td>
+                                <a asp-controller="Profile" asp-action="Index" asp-route-id="@u.Id" class="text-decoration-none fw-bold">@u.UserName</a>
+                            </td>
+                            <td class="fw-bold">@u.Elo</td>
+                            <td>@u.Points</td>
+                            <td class="text-success">@u.Wins</td>
+                            <td class="text-secondary">@u.Draws</td>
+                            <td class="text-danger">@u.Losses</td>
+                            <td>@(u.Wins + u.Draws + u.Losses)</td>
+                            <td>
+                                <a class="btn btn-sm btn-outline-secondary" asp-controller="Profile" asp-action="Index" asp-route-id="@u.Id">Profile</a>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="9" class="text-center text-muted py-4">No players yet. Register and play your first game!</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer small text-muted">
+        ELO is recalculated after every ranked game (K=32). Points: win = 3, draw = 1, loss = 0.
+    </div>
+</div>

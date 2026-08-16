@@ -1,0 +1,168 @@
+@model FriendsViewModel
+@{
+    ViewData["Title"] = "Friends";
+}
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header fw-bold">Add Friend</div>
+            <div class="card-body">
+                <div class="input-group mb-2">
+                    <input id="friendSearch" class="form-control" placeholder="Search by username..." />
+                    <button id="friendSearchBtn" class="btn btn-primary">Search</button>
+                </div>
+                <div id="searchResults"></div>
+            </div>
+        </div>
+        <div class="card shadow-sm mt-3">
+            <div class="card-header fw-bold">Friend Requests <span class="badge bg-danger">@Model.Requests.Count</span></div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    @foreach (var r in Model.Requests)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <a asp-controller="Profile" asp-action="Index" asp-route-id="@r.UserId" class="text-decoration-none fw-bold">@r.Username</a>
+                                <span class="badge bg-light text-dark">@r.Elo</span>
+                            </div>
+                            <div>
+                                <form asp-action="Accept" asp-route-id="@r.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-success">Accept</button>
+                                </form>
+                                <form asp-action="Reject" asp-route-id="@r.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-outline-danger">Reject</button>
+                                </form>
+                            </div>
+                        </li>
+                    }
+                    @if (!Model.Requests.Any())
+                    {
+                        <li class="list-group-item text-muted">No pending requests.</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header fw-bold">My Friends (@Model.Friends.Count)</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr><th>Player</th><th>ELO</th><th>Friends since</th><th></th><th></th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var f in Model.Friends)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-controller="Profile" asp-action="Index" asp-route-id="@f.UserId" class="text-decoration-none fw-bold">@f.Username</a>
+                                    </td>
+                                    <td>@f.Elo</td>
+                                    <td class="text-muted small">@f.Since.ToLocalTime().ToString("MMM d, yyyy")</td>
+                                    <td><a class="btn btn-sm btn-outline-primary" asp-action="Chat" asp-route-userId="@f.UserId">Chat</a></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-success challenge-btn" data-user-id="@f.UserId" data-username="@f.Username">Challenge</button>
+                                    </td>
+                                    <td>
+                                        <form asp-action="Remove" asp-route-id="@f.Id" method="post" onsubmit="return confirm('Remove @f.Username from friends?');">
+                                            @Html.AntiForgeryToken()
+                                            <button class="btn btn-sm btn-outline-danger">Remove</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                            @if (!Model.Friends.Any())
+                            {
+                                <tr><td colspan="6" class="text-center text-muted py-4">No friends yet. Search for a player above and send a request!</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="challengeModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body p-4 text-center">
+                <h5 id="challengeName" class="mb-3">Challenge</h5>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Friendly match - not ranked, does not affect ELO</label>
+                    <select id="challengeMinutes" class="form-select">
+                        <option value="10">10 min</option>
+                        <option value="30" selected>30 min</option>
+                        <option value="60">1 hour</option>
+                    </select>
+                </div>
+                <div class="d-flex justify-content-center gap-2">
+                    <button id="challengeGo" class="btn btn-success">Send Challenge</button>
+                    <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            var targetUserId = null;
+
+            function renderResults(users) {
+                var box = $('#searchResults');
+                if (!users.length) { box.html('<div class="text-muted small">No players found.</div>'); return; }
+                var token = document.querySelector('input[name="__RequestVerificationToken"]');
+                var tokenValue = token ? token.value : '';
+                var html = '<ul class="list-group">';
+                users.forEach(function (u) {
+                    var action = u.isFriend
+                        ? '<span class="badge bg-success">Friend</span>'
+                        : '<form method="post" action="/Friends/Add" style="display:inline">' +
+                          '<input type="hidden" name="__RequestVerificationToken" value="' + tokenValue + '" />' +
+                          '<input type="hidden" name="userId" value="' + u.id + '" />' +
+                          '<button class="btn btn-sm btn-outline-primary">Add</button></form>';
+                    html += '<li class="list-group-item d-flex justify-content-between align-items-center">' +
+                        '<span>' + u.userName + ' <span class="badge bg-light text-dark">' + u.elo + '</span></span>' + action + '</li>';
+                });
+                html += '</ul>';
+                box.html(html);
+            }
+
+            function doSearch() {
+                var q = $('#friendSearch').val().trim();
+                if (!q) return;
+                App.fetchJson('/Friends/Search?q=' + encodeURIComponent(q)).then(renderResults).catch(function () { });
+            }
+
+            $('#friendSearchBtn').on('click', doSearch);
+            $('#friendSearch').on('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
+
+            $('.challenge-btn').on('click', function () {
+                targetUserId = $(this).data('user-id');
+                $('#challengeName').text('Challenge ' + $(this).data('username'));
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('challengeModal')).show();
+            });
+
+            $('#challengeGo').on('click', async function () {
+                if (!targetUserId) return;
+                var minutes = parseInt($('#challengeMinutes').val());
+                var btn = $(this).prop('disabled', true).text('Sending...');
+                try {
+                    var hub = await App.gameHub();
+                    var game = await hub.invoke('CreateGame', minutes, false, targetUserId);
+                    bootstrap.Modal.getInstance(document.getElementById('challengeModal')).hide();
+                    window.location.href = '/Game/Play?id=' + game.id;
+                } catch (e) {
+                    alert(e.message || e);
+                    btn.prop('disabled', false).text('Send Challenge');
+                }
+            });
+        });
+    </script>
+}

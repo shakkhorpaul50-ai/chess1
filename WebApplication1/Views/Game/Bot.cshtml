@@ -1,0 +1,57 @@
+@{
+    ViewData["Title"] = "Play vs Bot";
+}
+<div class="row justify-content-center">
+    <div class="col-md-5 col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="card-title mb-4 text-center">Challenge Stockfish <span class="badge bg-info">Bot</span></h4>
+                <form method="post" asp-controller="Game" asp-action="StartBot" asp-antiforgery="false">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Play as</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="asWhite" id="asWhite" value="true" checked>
+                            <label class="form-check-label" for="asWhite">White (moves first)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="asWhite" id="asBlack" value="false">
+                            <label class="form-check-label" for="asBlack">Black</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Time control</label>
+                        <select name="minutes" class="form-select">
+                            <option value="10">10 minutes</option>
+                            <option value="30" selected>30 minutes</option>
+                            <option value="60">1 hour</option>
+                        </select>
+                        <small class="text-muted">+5 seconds per move. Bot runs in your browser (Stockfish via WebAssembly).</small>
+                    </div>
+                    <button type="submit" id="startBot" class="btn btn-success w-100">Start Game</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            $('#startBot').on('click', async function (e) {
+                e.preventDefault();
+                var minutes = parseInt($('select[name=minutes]').val());
+                var asWhite = document.getElementById('asWhite').checked;
+                var btn = $(this).prop('disabled', true).text('Starting...');
+                try {
+                    var hub = await App.gameHub();
+                    var game = await hub.invoke('CreateBotGame', minutes, asWhite);
+                    window.location.href = '/Game/Play?id=' + game.id;
+                } catch (err) {
+                    alert(err.message || err);
+                    btn.prop('disabled', false).text('Start Game');
+                }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,148 @@
+﻿@model LobbyViewModel
+@{
+    ViewData["Title"] = "Lobby";
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body p-4">
+                <h4 class="card-title">Start Playing</h4>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <h6>Play vs Bot <span class="badge bg-info">Stockfish</span></h6>
+                                <a asp-controller="Game" asp-action="Bot" class="btn btn-success w-100 mt-2">Choose settings</a>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <h6>Play Online <span class="badge bg-primary">1v1</span></h6>
+                                <div class="input-group mt-2">
+                                    <select id="matchMinutes" class="form-select">
+                                        <option value="10">10 min</option>
+                                        <option value="30" selected>30 min</option>
+                                        <option value="60">60 min</option>
+                                    </select>
+                                    <button id="btnFindMatch" class="btn btn-primary">Find match</button>
+                                </div>
+                                <small class="text-muted">+5 sec per move. Creates a lobby another player can join.</small>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-3">
+                        <a asp-controller="Account" asp-action="Register" class="btn btn-primary btn-lg">Register to play</a>
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-lg ms-2">Login</a>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header fw-bold">Live Games <span class="text-muted small">(spectate mode)</span></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>White</th><th>Black</th><th>Type</th><th>Time</th><th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var g in Model.ActiveGames)
+                            {
+                                <tr>
+                                    <td>@(g.WhitePlayer?.UserName ?? "Bot") <span class="badge bg-light text-dark">@(g.WhitePlayer?.Elo)</span></td>
+                                    <td>@(g.BlackPlayer?.UserName ?? "Bot") <span class="badge bg-light text-dark">@(g.BlackPlayer?.Elo)</span></td>
+                                    <td>@(g.IsVsBot ? "vs Bot" : g.IsRanked ? "Ranked" : "Friendly")</td>
+                                    <td>@g.Minutes min</td>
+                                    <td><a class="btn btn-sm btn-outline-secondary" asp-controller="Spectate" asp-action="Watch" asp-route-id="@g.Id">Watch</a></td>
+                                </tr>
+                            }
+                            @if (!Model.ActiveGames.Any())
+                            {
+                                <tr><td colspan="5" class="text-center text-muted py-3">No live games right now.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header fw-bold">Open Tournaments</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr><th>Name</th><th>Players</th><th>Time</th><th>Status</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var t in Model.Tournaments)
+                            {
+                                <tr>
+                                    <td>@t.Name</td>
+                                    <td>@t.PlayerCount / @t.MaxPlayers</td>
+                                    <td>@t.Minutes min</td>
+                                    <td><span class="badge @(t.Status == "Open" ? "bg-success" : "bg-warning")">@t.Status</span></td>
+                                    <td><a class="btn btn-sm btn-outline-primary" asp-controller="Tournament" asp-action="Detail" asp-route-id="@t.Id">Open</a></td>
+                                </tr>
+                            }
+                            @if (!Model.Tournaments.Any())
+                            {
+                                <tr><td colspan="5" class="text-center text-muted py-3">No tournaments yet. <a asp-controller="Tournament" asp-action="Create">Create one!</a></td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header fw-bold">Top Players</div>
+            <ul class="list-group list-group-flush">
+                @for (int i = 0; i < Model.Leaderboard.Count; i++)
+                {
+                    var u = Model.Leaderboard[i];
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <span class="badge @(i == 0 ? "bg-warning text-dark" : "bg-secondary") me-2">#@(i + 1)</span>
+                            <a asp-controller="Profile" asp-action="Index" asp-route-id="@u.Id" class="text-decoration-none">@u.UserName</a>
+                        </span>
+                        <span class="fw-bold">@u.Elo</span>
+                    </li>
+                }
+                @if (!Model.Leaderboard.Any())
+                {
+                    <li class="list-group-item text-muted">No players yet.</li>
+                }
+            </ul>
+            <div class="card-footer"><a asp-controller="Leaderboard" asp-action="Index">Full leaderboard &raquo;</a></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            $('#btnFindMatch').on('click', async function () {
+                var minutes = parseInt($('#matchMinutes').val());
+                var btn = $(this).prop('disabled', true).text('Creating lobby...');
+                try {
+                    var game = await window.App.gameHub.invoke('CreateGame', minutes, true);
+                    window.location.href = '/Game/Play?id=' + game.id;
+                } catch (e) {
+                    alert(e.message || e);
+                    btn.prop('disabled', false).text('Find match');
+                }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,139 @@
+@model TournamentDto
+@using WebApplication1.Models
+@inject Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> UserManager
+@{
+    ViewData["Title"] = Model.Name;
+    var joined = (bool?)ViewData["JoinedByMe"] ?? false;
+    var isCreator = (bool?)ViewData["IsCreator"] ?? false;
+    var myId = User.Identity?.IsAuthenticated == true ? UserManager.GetUserId(User) : null;
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">@Model.Name</h5>
+                <div>
+                    <span class="badge @(Model.Status == "Open" ? "bg-success" : Model.Status == "InProgress" ? "bg-warning" : "bg-secondary")">@Model.Status</span>
+                    <span class="badge bg-info">@Model.Minutes min</span>
+                    <span class="badge bg-light text-dark">Round-robin</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="d-flex flex-column">
+                        @foreach (var p in Model.Players)
+                        {
+                            <div class="mb-1">
+                                <a asp-controller="Profile" asp-action="Index" asp-route-id="@p.Id" class="text-decoration-none">@p.Username</a>
+                                <span class="badge bg-light text-dark">@p.Elo</span>
+                            </div>
+                        }
+                        @if (Model.PlayerCount < Model.MaxPlayers)
+                        {
+                            <div class="text-muted small">@(Model.MaxPlayers - Model.PlayerCount) slot(s) remaining</div>
+                        }
+                    </div>
+                    <div class="ms-auto text-end">
+                        @if (Model.Status == "Open" && User.Identity?.IsAuthenticated == true)
+                        {
+                            @if (joined)
+                            {
+                                <span class="badge bg-success">Joined</span>
+                            }
+                            else
+                            {
+                                <form asp-action="Join" asp-route-id="@Model.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-primary">Join Tournament</button>
+                                </form>
+                            }
+                            @if (isCreator)
+                            {
+                                <form asp-action="Start" asp-route-id="@Model.Id" method="post" class="d-inline ms-2">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-success">Start</button>
+                                </form>
+                            }
+                        }
+                        @if (Model.Status == "Open" && Model.PlayerCount < Model.MaxPlayers)
+                        {
+                            <div class="text-muted small mt-2">Creator must start once all @Model.MaxPlayers players have joined.</div>
+                        }
+                    </div>
+                </div>
+
+                <h6 class="fw-bold mt-3">Games</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr><th>Round</th><th>White</th><th>Black</th><th>Status</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var g in Model.Games)
+                            {
+                                <tr>
+                                    <td>@g.Round</td>
+                                    <td>@(g.White?.Username ?? "?")</td>
+                                    <td>@(g.Black?.Username ?? "?")</td>
+                                    <td>
+                                        @if (g.Status == "Waiting") { <span class="badge bg-secondary">Waiting</span> }
+                                        else if (g.Status == "InProgress") { <span class="badge bg-warning">In progress</span> }
+                                        else if (g.Status == "Draw") { <span class="badge bg-secondary">Draw</span> }
+                                        else if (g.Status == "WhiteWon") { <span class="badge bg-success">@(g.White?.Username) won</span> }
+                                        else if (g.Status == "BlackWon") { <span class="badge bg-danger">@(g.Black?.Username) won</span> }
+                                        @if (!string.IsNullOrEmpty(g.ResultReason) && g.Status != "Waiting" && g.Status != "InProgress")
+                                        {
+                                            <small class="text-muted d-block">@g.ResultReason</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (g.Status == "Waiting" && myId != null && (g.White?.Id == myId || g.Black?.Id == myId))
+                                        {
+                                            <a class="btn btn-sm btn-success" asp-controller="Game" asp-action="Play" asp-route-id="@g.Id">Play</a>
+                                        }
+                                        else if (g.Status == "Waiting" || g.Status == "InProgress")
+                                        {
+                                            <a class="btn btn-sm btn-outline-secondary" asp-controller="Game" asp-action="Play" asp-route-id="@g.Id">@(g.Status == "InProgress" ? "Watch" : "Open")</a>
+                                        }
+                                        else
+                                        {
+                                            <a class="btn btn-sm btn-outline-secondary" asp-controller="Game" asp-action="Replay" asp-route-id="@g.Id">Replay</a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            @if (!Model.Games.Any())
+                            {
+                                <tr><td colspan="5" class="text-center text-muted py-3">No games yet.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header fw-bold">Standings</div>
+            <ul class="list-group list-group-flush">
+                @foreach (var s in Model.Standings)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <span class="badge @(s.Rank == 1 ? "bg-warning text-dark" : s.Rank == 2 ? "bg-secondary" : s.Rank == 3 ? "bg-danger text-white" : "bg-light text-dark") me-2">@s.Rank</span>
+                            @s.Username <span class="text-muted small">(@s.Elo)</span>
+                        </span>
+                        <span class="fw-bold">@(s.Points.ToString("0.0"))</span>
+                    </li>
+                }
+                @if (!Model.Standings.Any())
+                {
+                    <li class="list-group-item text-muted">Standings appear after games finish.</li>
+                }
+            </ul>
+            <div class="card-footer small text-muted">Points: win = 1, draw = 0.5. Tournament games count toward your ELO.</div>
+        </div>
+    </div>
+</div>

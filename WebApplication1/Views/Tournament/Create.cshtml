@@ -1,0 +1,38 @@
+@{
+    ViewData["Title"] = "Create Tournament";
+}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="card-title mb-4 text-center">Create Tournament</h4>
+                <form method="post" asp-action="Create">
+                    @Html.AntiForgeryToken()
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tournament Name</label>
+                        <input name="name" class="form-control" required maxlength="40" placeholder="e.g. Saturday Blitz Cup" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Players</label>
+                        <select name="maxPlayers" class="form-select">
+                            <option value="4">4 players</option>
+                            <option value="6">6 players</option>
+                        </select>
+                        <small class="text-muted">Round-robin: everyone plays everyone. 4 players = 6 games, 6 players = 15 games.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Time control</label>
+                        <select name="minutes" class="form-select">
+                            <option value="10">10 minutes</option>
+                            <option value="30" selected>30 minutes</option>
+                            <option value="60">1 hour</option>
+                        </select>
+                        <small class="text-muted">+5 seconds per move. Tournament games are ranked.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Create Tournament</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

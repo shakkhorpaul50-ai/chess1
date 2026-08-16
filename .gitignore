@@ -1,0 +1,28 @@
+## .NET build artifacts
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Visual Studio
+.vs/
+.vscode/
+.idea/
+
+## Runtime / database
+chess.db
+chess.db-shm
+chess.db-wal
+*.db
+*.sqlite
+
+## Logs
+logs/
+*.log
+npm-debug.log*
+
+## OS
+Thumbs.db
+.DS_Store

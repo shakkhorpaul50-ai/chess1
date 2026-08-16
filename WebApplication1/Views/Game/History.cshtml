@@ -1,0 +1,47 @@
+@model List<GameRecord>
+@{
+    ViewData["Title"] = "My Games";
+}
+<div class="card shadow-sm">
+    <div class="card-header fw-bold">Game History</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>White</th><th>Black</th><th>Type</th><th>Time</th><th>Result</th><th>Date</th><th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var g in Model)
+                    {
+                        <tr>
+                            <td>@(g.WhitePlayer?.UserName ?? "Bot")</td>
+                            <td>@(g.BlackPlayer?.UserName ?? "Bot")</td>
+                            <td>
+                                @if (g.IsVsBot) { <span class="badge bg-info">Bot</span> }
+                                else if (g.IsRanked) { <span class="badge bg-primary">Ranked</span> }
+                                else { <span class="badge bg-secondary">Friendly</span> }
+                                @if (g.TournamentId != null) { <span class="badge bg-success">Tournament</span> }
+                            </td>
+                            <td>@g.Minutes + @g.Increment</td>
+                            <td>
+                                @if (g.Status == "Draw") { <span class="text-secondary fw-bold">Draw</span> }
+                                else if (g.Status == "WhiteWon") { <span class="text-success fw-bold">@(g.WhitePlayer?.UserName ?? "Bot") won</span> }
+                                else if (g.Status == "BlackWon") { <span class="text-danger fw-bold">@(g.BlackPlayer?.UserName ?? "Bot") won</span> }
+                                else { <span class="text-muted">@g.Status</span> }
+                                @if (g.ResultReason != null) { <small class="text-muted d-block">@g.ResultReason</small> }
+                            </td>
+                            <td class="text-muted small">@g.CreatedAt.ToLocalTime().ToString("MMM d, yyyy HH:mm")</td>
+                            <td><a class="btn btn-sm btn-outline-secondary" asp-action="Replay" asp-route-id="@g.Id">Replay</a></td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-4">No games yet. <a asp-action="Bot">Play vs bot</a> or find a match in the lobby!</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

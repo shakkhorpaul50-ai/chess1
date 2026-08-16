@@ -1,0 +1,38 @@
+@model List<GameRecord>
+@{
+    ViewData["Title"] = "Spectate";
+}
+<div class="card shadow-sm">
+    <div class="card-header fw-bold">Live Games - Watch Any Match</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr><th>White</th><th>Black</th><th>Type</th><th>Time</th><th>Started</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var g in Model)
+                    {
+                        <tr>
+                            <td>@(g.WhitePlayer?.UserName ?? "Bot") <span class="badge bg-light text-dark">@(g.WhitePlayer?.Elo)</span></td>
+                            <td>@(g.BlackPlayer?.UserName ?? "Bot") <span class="badge bg-light text-dark">@(g.BlackPlayer?.Elo)</span></td>
+                            <td>
+                                @if (g.IsVsBot) { <span class="badge bg-info">vs Bot</span> }
+                                else if (g.IsRanked) { <span class="badge bg-primary">Ranked</span> }
+                                else { <span class="badge bg-secondary">Friendly</span> }
+                                @if (g.TournamentId != null) { <span class="badge bg-success">Tournament</span> }
+                            </td>
+                            <td>@g.Minutes min</td>
+                            <td class="text-muted small">@(g.StartedAt?.ToLocalTime().ToString("HH:mm") ?? "-")</td>
+                            <td><a class="btn btn-sm btn-outline-primary" asp-action="Watch" asp-route-id="@g.Id">Watch</a></td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="6" class="text-center text-muted py-4">No games in progress right now.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
