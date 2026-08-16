@@ -3,7 +3,7 @@ const STATIC_PREFIXES = ['/js/', '/css/', '/lib/', '/stockfish/', '/favicon.ico'
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const origin = env.ORIGIN || 'https://chess-app.onrender.com';
+    const origin = env.ORIGIN || 'https://chess-app-w57w.onrender.com';
 
     const isUpgrade = request.headers.get('Upgrade') === 'websocket';
 

@@ -4,7 +4,7 @@ compatibility_date = "2026-04-07"
 
 # Change this to the public URL of your Render web service.
 [vars]
-ORIGIN = "https://chess-app.onrender.com"
+ORIGIN = "https://chess-app-w57w.onrender.com"
 # Optional: point at a Cloudflare Pages project hosting the static assets.
 # Leave empty to serve everything from the Render origin.
 ASSETS_ORIGIN = ""

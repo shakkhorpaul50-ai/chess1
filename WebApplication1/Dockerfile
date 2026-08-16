@@ -18,6 +18,9 @@ RUN dotnet publish "WebApplication1.csproj" -c $BUILD_CONFIGURATION -o /app/publ
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 EXPOSE 8080
+# Render containers have no IPv6 route; Supabase hostnames resolve to IPv6 first,
+# which makes Npgsql fail with "Network is unreachable". Force IPv4.
+ENV DOTNET_SYSTEM_NET_DISABLEIPV6=1
 USER $APP_UID
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "WebApplication1.dll"]
