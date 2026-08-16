@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: chess-app
+    runtime: docker
+    rootDir: WebApplication1
+    dockerfilePath: Dockerfile
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
